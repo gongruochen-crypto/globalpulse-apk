@@ -1,0 +1,16 @@
+{
+  "name": "globalpulse-autotrader-v2",
+  "version": "2.1.0",
+  "description": "GlobalPulse 全自动A股散户风控模拟交易终端（含涨跌停板撮合逻辑）",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

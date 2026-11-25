@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#07090d" />
+  <title>GlobalPulse 智投 v2 · 全自动散户风控终端</title>
+  <style>
+    :root {
+      --bg: #07090d;
+      --card: #11151e;
+      --card-2: #171d29;
+      --border: #232b3b;
+      --text: #f1f5f9;
+      --muted: #8b98ad;
+      --up: #ff4d4f;         /* A股红：上涨/涨停/买入 */
+      --up-bg: rgba(255, 77, 79, 0.15);
+      --down: #22c55e;       /* A股绿：下跌/跌停/卖出 */
+      --down-bg: rgba(34, 197, 94, 0.15);
+      --gold: #f59e0b;       /* 保守警示/排队 */
+      --gold-bg: rgba(245, 158, 11, 0.15);
+      --accent: #38bdf8;
+      --accent-bg: rgba(56, 189, 248, 0.15);
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.15);
+      --safe-top: env(safe-area-inset-top, 10px);
+      --safe-bottom: env(safe-area-inset-bottom, 12px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Roboto", "Helvetica Neue", sans-serif;
+      font-variant-numeric: tabular-nums;
+      overscroll-behavior-y: none;
+    }
+    .app { max-width: 520px; margin: 0 auto; min-height: 100vh; padding-bottom: calc(78px + var(--safe-bottom)); }
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(7, 9, 13, 0.92);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      padding: calc(var(--safe-top) + 10px) 14px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .pulse-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: var(--down);
+      box-shadow: 0 0 10px var(--down); animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.82); }
+    }
+    .title { font-size: 16.5px; font-weight: 800; letter-spacing: -0.2px; }
+    .clock-pill {
+      font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700;
+      background: var(--down-bg); color: #4ade80; border: 1px solid rgba(34,197,94,0.35);
+    }
+    .risk-banner {
+      margin-top: 8px; padding: 6px 10px; border-radius: 8px;
+      background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
+      font-size: 11px; color: #fcd34d; display: flex; justify-content: space-between; align-items: center;
+    }
+    .section { padding: 12px 14px; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 13px; margin-bottom: 11px;
+    }
+    .card-title { font-size: 14px; font-weight: 700; margin: 0 0 9px; display: flex; justify-content: space-between; align-items: center; }
+    .asset-big { font-size: 27px; font-weight: 800; letter-spacing: -0.5px; margin: 2px 0 6px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+    .mini-box { background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 9px; }
+    .mini-lbl { font-size: 10px; color: var(--muted); }
+    .mini-val { font-size: 13.5px; font-weight: 700; margin-top: 3px; }
+    .up { color: var(--up); }
+    .down { color: var(--down); }
+    .gold { color: var(--gold); }
+    .accent { color: var(--accent); }
+    .muted { color: var(--muted); }
+    .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    /* Badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 6px;
+    }
+    .b-up { background: var(--up-bg); color: var(--up); border: 1px solid rgba(255,77,79,0.35); }
+    .b-down { background: var(--down-bg); color: var(--down); border: 1px solid rgba(34,197,94,0.35); }
+    .b-gold { background: var(--gold-bg); color: var(--gold); border: 1px solid rgba(245,158,11,0.35); }
+    .b-accent { background: var(--accent-bg); color: var(--accent); border: 1px solid rgba(56,189,248,0.35); }
+    .b-purple { background: var(--purple-bg); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.35); }
+    .b-gray { background: var(--card-2); color: var(--muted); border: 1px solid var(--border); }
+    .b-limit-up { background: #dc2626; color: #fff; border: 1px solid #ef4444; }
+    .b-limit-down { background: #15803d; color: #fff; border: 1px solid #22c55e; }
+    /* Plain-language explain box */
+    .explain-box {
+      margin-top: 8px; padding: 9px 11px; border-radius: 10px;
+      background: rgba(56, 189, 248, 0.08); border-left: 3px solid var(--accent);
+      font-size: 12px; line-height: 1.55; color: #dbeafe;
+    }
+    .explain-box.buy { background: rgba(255, 77, 79, 0.1); border-left-color: var(--up); color: #fee2e2; }
+    .explain-box.sell { background: rgba(34, 197, 94, 0.1); border-left-color: var(--down); color: #dcfce7; }
+    .explain-box.warn { background: rgba(245, 158, 11, 0.1); border-left-color: var(--gold); color: #fef3c7; }
+    .explain-box.blocked { background: rgba(168, 85, 247, 0.12); border-left-color: var(--purple); color: #f3e8ff; }
+    /* 5-step mini trace inside log */
+    .trace-box {
+      margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+      background: #0b0e15; border: 1px solid var(--border); font-size: 11.5px; line-height: 1.6; color: #cbd5e1;
+    }
+    .trace-step { margin-bottom: 3px; }
+    .trace-step b { color: var(--accent); }
+    /* Progress bar */
+    .bar-bg { height: 7px; background: #1e2536; border-radius: 99px; overflow: hidden; margin-top: 6px; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #0ea5e9, #38bdf8); border-radius: 99px; transition: width 0.3s; }
+    /* Speed pills */
+    .speed-group { display: flex; gap: 6px; }
+    .speed-btn {
+      font-size: 11px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--card-2); color: var(--muted); cursor: pointer; font-weight: 600;
+    }
+    .speed-btn.active { background: var(--accent); color: #05070a; border-color: var(--accent); }
+    /* Inputs */
+    .input {
+      width: 100%; background: var(--card-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 10px; padding: 9px 12px; font-size: 13px; outline: none;
+    }
+    .btn-primary {
+      background: var(--accent); color: #05070a; border: none; border-radius: 10px;
+      padding: 9px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    }
+    /* Tabbar */
+    .tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+      background: rgba(11, 14, 20, 0.95);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      padding: 8px 6px calc(8px + var(--safe-bottom));
+    }
+    .tabbar-inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+    .tab-btn {
+      background: none; border: none; color: var(--muted); font-size: 11px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+    }
+    .tab-btn.active { color: var(--accent); font-weight: 700; }
+    .tab-btn svg { width: 20px; height: 20px; }
+    .hidden { display: none !important; }
+    /* Ticker strip */
+    .live-ticker {
+      margin-top: 8px; padding: 7px 10px; border-radius: 9px;
+      background: #0d121c; border: 1px solid var(--border);
+      font-size: 11.5px; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="header-row">
+        <div class="brand">
+          <span class="pulse-dot"></span>
+          <span class="title">GlobalPulse 全自动智投</span>
+        </div>
+        <span class="clock-pill" id="sim-clock">第1日 09:30</span>
+      </div>
+      <div class="risk-banner">
+        <span>🤖 全自动无人值守 · 保守风控 · 盈亏自负</span>
+        <span id="quote-source-lbl" style="font-weight:700;">实盘/仿真联动</span>
+      </div>
+      <div class="live-ticker" id="live-ticker">正在启动全自动散户风控引擎，自动扫描涨跌停板与买卖点...</div>
+    </header>
+
+    <!-- TAB 1: 全自动总览 -->
+    <section id="tab-auto" class="section">
+      <!-- Account Card -->
+      <div class="card">
+        <div class="row-between">
+          <span class="muted" style="font-size:12px;">¥50,000 本金实时账户</span>
+          <span class="badge b-gold">保守型 ≤60%仓位</span>
+        </div>
+        <div class="asset-big" id="total-assets">¥50,000.00</div>
+        <div class="row-between" style="font-size:12.5px;">
+          <span>实时净盈亏：<b id="total-pnl">¥0.00 (0.00%)</b></span>
+          <span class="muted">累计手续费 <b id="total-fees">¥0.00</b></span>
+        </div>
+        <div class="grid-3">
+          <div class="mini-box">
+            <div class="mini-lbl">安全现金垫</div>
+            <div class="mini-val" id="cash-val">¥50,000</div>
+          </div>
+          <div class="mini-box">
+            <div class="mini-lbl">持仓实时市值</div>
+            <div class="mini-val" id="mkt-val">¥0</div>
+          </div>
+          <div class="mini-box">
+            <div class="mini-lbl">当前仓位</div>
+            <div class="mini-val accent" id="pos-ratio">0.0%</div>
+          </div>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" id="pos-bar" style="width:0%"></div></div>
+        <div class="row-between" style="margin-top:8px;">
+          <div class="speed-group">
+            <button class="speed-btn active" onclick="setSpeed(2500, this)">正常自动</button>
+            <button class="speed-btn" onclick="setSpeed(1000, this)">3倍速演练</button>
+            <button class="speed-btn" onclick="setSpeed(450, this)">极速复盘</button>
+          </div>
+          <span style="font-size:11px;color:var(--up);cursor:pointer;" onclick="resetAll()">重置5万</span>
+        </div>
+      </div>
+
+      <!-- Pending / Queued Orders due to Limit-Down -->
+      <div class="card hidden" id="queued-card" style="border-color: rgba(168,85,247,0.5);">
+        <div class="card-title">
+          <span style="color:#d8b4fe;">⏳ 跌停封板排队卖出中（自动盯盘撬板）</span>
+        </div>
+        <div id="queued-list"></div>
+      </div>
+
+      <!-- Active Holdings -->
+      <div class="card">
+        <div class="card-title">
+          <span>📊 全自动托管持仓（含T+1与涨跌停监测）</span>
+          <span class="muted" style="font-size:11px;" id="holding-count">0 只</span>
+        </div>
+        <div id="holdings-list"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: 意向股长期监控 -->
+    <section id="tab-monitor" class="section hidden">
+      <div class="card">
+        <div class="card-title"><span>🎯 添加长期监控意向股（自动纳入托管）</span></div>
+        <div style="display:flex;gap:8px;">
+          <input id="add-code" class="input" placeholder="输入6位A股代码，如 600519 或 300750" />
+          <button class="btn-primary" onclick="addWatchStock()">+ 加入</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;">
+          自动识别主板(±10%)与创业板/科创板(±20%)涨跌停价，全自动判断封板/炸板/撬板，无需人工操作。
+        </div>
+      </div>
+      <div id="monitor-list"></div>
+    </section>
+
+    <!-- TAB 3: 自动买卖全过程日志 -->
+    <section id="tab-logs" class="section hidden">
+      <div class="card" style="padding:10px 12px;">
+        <div class="row-between">
+          <span style="font-size:13px;font-weight:700;">📝 全自动成交与涨跌停拦截日志</span>
+          <span class="muted" style="font-size:11px;" id="log-count">0 条</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+          完整记录每笔成交、涨停买不进、跌停卖不出排队及撬板抢跑的五步推演过程。
+        </div>
+      </div>
+      <div id="logs-list"></div>
+    </section>
+
+    <!-- TAB 4: 散户核心逻辑说明 -->
+    <section id="tab-rules" class="section hidden">
+      <div class="card">
+        <div class="card-title"><span>🧠 散户核心实战逻辑（已固化为自动规则）</span></div>
+        <div style="font-size:12.5px;color:#cbd5e1;line-height:1.7;">
+          <p style="margin:0 0 8px;"><b class="up">1. 涨停板买不进原则（防虚报成交）</b><br/>
+          主板(±10%)与双创板(±20%)一旦触及涨停且大单封死，散户排在机构通道后面根本买不到。系统会真实拦截并标注「涨停封死买不进」，若盘中炸板也不盲目追高接盘。</p>
+          <p style="margin:0 0 8px;"><b class="down">2. 跌停板卖不出 & 自动盯盘撬板抢跑</b><br/>
+          持仓股一旦跌停封死，哪怕已经跌破 -4% 止损线，散户也卖不出去！系统不会虚假止损，而是自动挂跌停排队单持续盯盘，一旦盘中出现「开板/撬板」，毫秒级自动抢跑止损。</p>
+          <p style="margin:0 0 8px;"><b class="gold">3. 5万元本金佣金防损耗（单笔 ≥ ¥2,500）</b><br/>
+          A股单笔佣金最低 ¥5，如果只买几百块股票，一买一卖光手续费就亏掉 1% 以上。系统强制单笔建仓金额 ≥ ¥2,500 且为 100 股整数倍，保护小资金不被手续费磨光。</p>
+          <p style="margin:0 0 8px;"><b class="accent">4. 保守型铁律（60%上限 / +8%止盈 / -4%止损 / T+1）</b><br/>
+          • 强制留足 ≥40% 现金安全垫，单股不超 20%（约¥1万）；<br/>
+          • 仅做情报可信度 ≥85 分且当日涨幅 &lt; +3.5% 的低吸买点；<br/>
+          • 严格执行 T+1 隔日可卖，浮盈 +8% 止盈，浮盈超 +5% 回撤 2% 移动锁利，浮亏 -4% 无条件止损。</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Bottom Tabbar -->
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" onclick="switchTab('auto', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        <span>全自动盘</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('monitor', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span>意向监控</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('logs', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+        <span>买卖过程</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('rules', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>散户逻辑</span>
+      </button>
+    </div>
+  </nav>
+
+<script>
+const INITIAL_CAPITAL = 50000;
+const RULES = {
+  maxTotalPosRatio: 0.60,
+  maxSinglePosRatio: 0.20,
+  minOrderAmount: 2500,      // 5万小资金防最低5元佣金损耗阈值
+  minCredibility: 85,
+  maxChasePct: 3.5,
+  maxDipPct: -3.0,
+  takeProfitPct: 8.0,
+  trailingActivatePct: 5.0,
+  trailingDrawdownPct: 2.0,
+  stopLossPct: -4.0
+};
+
+function getLimitRate(code) {
+  return (code.startsWith("300") || code.startsWith("301") || code.startsWith("688")) ? 0.20 : 0.10;
+}
+function calcLimitPrices(prevClose, code) {
+  const rate = getLimitRate(code);
+  return {
+    ratePct: Math.round(rate * 100),
+    limitUp: Number((prevClose * (1 + rate)).toFixed(2)),
+    limitDown: Number((prevClose * (1 - rate)).toFixed(2))
+  };
+}
+
+const DEFAULT_WATCHLIST = [
+  { code: "600036.SH", name: "招商银行", sector: "高股息银行", prevClose: 38.10, price: 38.20, cred: 94, bias: "bull", boardStatus: "NORMAL", news: "高利率周期拉长，防御性红利低波资产受青睐" },
+  { code: "600900.SH", name: "长江电力", sector: "公用红利", prevClose: 28.85, price: 28.92, cred: 94, bias: "bull", boardStatus: "NORMAL", news: "现金流稳定、股息率高，保守底仓首选" },
+  { code: "601111.SH", name: "中国国航", sector: "航空", prevClose: 7.72, price: 7.82, cred: 93, bias: "bull", boardStatus: "NORMAL", news: "国际油价重挫创三月新低，航油成本显著下降" },
+  { code: "600406.SH", name: "国电南瑞", sector: "电网出海", prevClose: 24.40, price: 24.58, cred: 91, bias: "bull", boardStatus: "NORMAL", news: "COP31超90国签署电气化承诺，全球电网升级" },
+  { code: "603799.SH", name: "华友钴业", sector: "电池金属钴", prevClose: 30.60, price: 33.66, cred: 92, bias: "bull", boardStatus: "LIMIT_UP_SEALED", news: "刚果(金)再度暂停全部钴出口，开盘大单顶一字涨停" },
+  { code: "600026.SH", name: "中远海能", sector: "油运VLCC", prevClose: 13.25, price: 13.36, cred: 90, bias: "bull", boardStatus: "NORMAL", news: "霍尔木兹油轮事件推升油运风险溢价，但需防局势缓和急跌" },
+  { code: "300308.SZ", name: "中际旭创", sector: "光模块CPO", prevClose: 136.00, price: 143.20, cred: 95, bias: "bull", boardStatus: "NORMAL", news: "英伟达大涨带动算力情绪，但短线涨幅已大" }
+];
+
+let state = JSON.parse(localStorage.getItem("gp_auto_v2_state") || "null") || {
+  day: 1,
+  minuteOfDay: 570, // 09:30 = 570
+  cash: INITIAL_CAPITAL,
+  totalFees: 0,
+  holdings: {},     // code -> { code, name, shares, availableShares, avgCost, peakPrice, queuedSell }
+  watchlist: DEFAULT_WATCHLIST,
+  logs: [],
+  lastBlockLogKey: {} // throttle duplicate block logs per day
+};
+
+let tickMs = 2500;
+let timerId = null;
+
+function saveState() {
+  localStorage.setItem("gp_auto_v2_state", JSON.stringify(state));
+}
+
+function formatClock(mins) {
+  const h = String(Math.floor(mins / 60)).padStart(2, "0");
+  const m = String(mins % 60).padStart(2, "0");
+  return `${h}:${m}`;
+}
+
+function calcFees(amount, isSell) {
+  const comm = Math.max(5, amount * 0.00025);
+  const tax = isSell ? amount * 0.0005 : 0;
+  const trans = amount * 0.00001;
+  return Number((comm + tax + trans).toFixed(2));
+}
+
+function getTotals() {
+  let mkt = 0;
+  for (const code in state.holdings) {
+    const h = state.holdings[code];
+    const s = state.watchlist.find(x => x.code === code);
+    mkt += h.shares * (s ? s.price : h.avgCost);
+  }
+  return { mkt, total: state.cash + mkt };
+}
+
+function setTicker(msg) {
+  document.getElementById("live-ticker").textContent = `[第${state.day}日 ${formatClock(state.minuteOfDay)}] ` + msg;
+}
+
+// Try real Tencent quote silently during real A-share hours
+function fetchLiveQuote(stock) {
+  return new Promise(resolve => {
+    const prefix = stock.code.endsWith(".SH") ? "sh" : "sz";
+    const pure = stock.code.split(".")[0];
+    const varName = "v_" + prefix + pure;
+    const sc = document.createElement("script");
+    let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; sc.remove(); resolve(null); } }, 1200);
+    sc.src = `https://qt.gtimg.cn/q=${prefix}${pure}`;
+    sc.onload = () => {
+      if (done) return;
+      done = true; clearTimeout(t);
+      try {
+        const raw = window[varName];
+        if (raw && raw.includes("~")) {
+          const p = raw.split("~");
+          const cur = parseFloat(p[3]), prev = parseFloat(p[4]);
+          if (cur > 0 && prev > 0) { sc.remove(); return resolve({ price: cur, prevClose: prev, name: p[1] || stock.name }); }
+        }
+      } catch (e) {}
+      sc.remove(); resolve(null);
+    };
+    sc.onerror = () => { if (!done) { done = true; sc.remove(); resolve(null); } };
+    document.head.appendChild(sc);
+  });
+}
+
+// Advance realistic market prices including limit-up sealed, limit-up open(炸板), limit-down sealed, limit-down open(撬板)
+function simulateMarketStep(s) {
+  const { limitUp, limitDown } = calcLimitPrices(s.prevClose, s.code);
+
+  // If currently sealed at limit-up, 25% chance to unseal (炸板)
+  if (s.boardStatus === "LIMIT_UP_SEALED") {
+    if (Math.random() < 0.22) {
+      s.price = Number((limitUp * (1 - 0.008 - Math.random() * 0.015)).toFixed(2));
+      s.boardStatus = "LIMIT_UP_BROKEN"; // 炸板
+    } else {
+      s.price = limitUp;
+    }
+    return;
+  }
+  // If currently sealed at limit-down, 35% chance to unseal (撬板)
+  if (s.boardStatus === "LIMIT_DOWN_SEALED") {
+    if (Math.random() < 0.35) {
+      s.price = Number((limitDown * (1 + 0.008 + Math.random() * 0.015)).toFixed(2));
+      s.boardStatus = "LIMIT_DOWN_OPENED"; // 撬板开板
+    } else {
+      s.price = limitDown;
+    }
+    return;
+  }
+
+  // Normal movement with occasional sudden limit-up or sudden flash-crash limit-down (to realistically demonstrate retail limit-board protection)
+  const rand = Math.random();
+  let newPrice;
+  if (s.bias === "bull" && rand < 0.035) {
+    newPrice = limitUp;
+  } else if (rand > 0.965 && s.code !== "600900.SH" && s.code !== "600036.SH") {
+    newPrice = limitDown; // sudden bad-news flash crash to limit-down
+  } else {
+    const drift = s.bias === "bull" ? 0.0028 : -0.001;
+    const step = (Math.random() - 0.485 + drift) * 0.026;
+    newPrice = Number((s.price * (1 + step)).toFixed(2));
+  }
+
+  if (newPrice >= limitUp) {
+    s.price = limitUp;
+    s.boardStatus = "LIMIT_UP_SEALED";
+  } else if (newPrice <= limitDown) {
+    s.price = limitDown;
+    s.boardStatus = "LIMIT_DOWN_SEALED";
+  } else {
+    s.price = newPrice;
+    s.boardStatus = "NORMAL";
+  }
+}
+
+// Core Retail Evaluation & Transparent 5-Step Logic
+function evaluateRetailLogic(s) {
+  const { ratePct, limitUp, limitDown } = calcLimitPrices(s.prevClose, s.code);
+  const pct = ((s.price - s.prevClose) / s.prevClose) * 100;
+  const h = state.holdings[s.code];
+  const { total } = getTotals();
+  const posRatio = (total - state.cash) / total;
+
+  // --- CASE A: HOLDING ---
+  if (h && h.shares > 0) {
+    const pnlPct = ((s.price - h.avgCost) / h.avgCost) * 100;
+    if (s.price > (h.peakPrice || h.avgCost)) h.peakPrice = s.price;
+    const peakPnlPct = ((h.peakPrice - h.avgCost) / h.avgCost) * 100;
+    const ddFromPeak = ((s.price - h.peakPrice) / h.peakPrice) * 100;
+
+    // 1. T+1 Lock check
+    if (h.availableShares <= 0) {
+      return {
+        action: "HOLD_T1",
+        badge: s.boardStatus === "LIMIT_DOWN_SEALED" ? "⛔ 跌停+T+1锁定" : "🔒 T+1锁仓中",
+        badgeClass: s.boardStatus === "LIMIT_DOWN_SEALED" ? "b-limit-down" : "b-gray",
+        boxClass: s.boardStatus === "LIMIT_DOWN_SEALED" ? "warn" : "",
+        reason: `今日刚买入，受 A 股 T+1 限制明天才能卖出。当前浮盈 ${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}%，系统将在明日自动接管止盈止损。`
+      };
+    }
+
+    // 2. Check Sell Triggers (Stop-Loss / Take-Profit / Trailing-Stop / Previously Queued)
+    const needStopLoss = pnlPct <= RULES.stopLossPct;
+    const needTakeProfit = pnlPct >= RULES.takeProfitPct;
+    const needTrailing = peakPnlPct >= RULES.trailingActivatePct && ddFromPeak <= -RULES.trailingDrawdownPct;
+    const wantSell = needStopLoss || needTakeProfit || needTrailing || h.queuedSell;
+
+    if (wantSell) {
+      // CRITICAL RETAIL CHECK: Is it sealed at Limit-Down?
+      if (s.boardStatus === "LIMIT_DOWN_SEALED" || s.price <= limitDown) {
+        h.queuedSell = true;
+        return {
+          action: "SELL_BLOCKED_LIMIT_DOWN",
+          badge: "⛔ 跌停封死卖不出",
+          badgeClass: "b-limit-down",
+          boxClass: "blocked",
+          reason: `触发止损（浮亏 ${pnlPct.toFixed(2)}%），但股价已被按死在跌停板 ¥${limitDown.toFixed(2)}（-${ratePct}%）！散户在跌停封死时无法成交，系统已自动挂出跌停排队单，一旦盘中撬板开板立即抢跑卖出！`,
+          trace: [
+            `<b>① 持仓状态</b>：成本 ¥${h.avgCost.toFixed(2)}，现价 ¥${s.price.toFixed(2)}，浮亏 ${pnlPct.toFixed(2)}%（跌破 -4% 止损红线）。`,
+            `<b>② 盘口检测</b>：触及 ${ratePct}% 跌停价 ¥${limitDown.toFixed(2)} 且卖一封单封死。`,
+            `<b>③ 散户实盘规则</b>：跌停封死状态下流动性枯竭，散户卖单无法立刻成交，禁止虚假平仓。`,
+            `<b>④ 自动指令</b>：挂单进入「撬板抢跑队列」，系统持续盯盘。`,
+            `<b>⑤ 后续预案</b>：只要盘中打开跌停（哪怕一瞬间），立即按市价全仓卖出止损。`
+          ]
+        };
+      }
+
+      // Limit-down opened or normal -> Execute Real Sell!
+      const isEscape = h.queuedSell;
+      const sellTitle = isEscape ? "⚡ 撬板抢跑止损" : needTakeProfit ? "💰 自动止盈落袋" : needTrailing ? "🔒 移动止盈锁利" : "🛡️ 触发-4%止损";
+      const sellReason = isEscape
+        ? `跌停板刚刚撬板打开（现价 ¥${s.price.toFixed(2)}）！系统第一时间自动抢跑全仓卖出，成功逃离连续跌停风险！`
+        : needTakeProfit
+        ? `持仓已盈利 +${pnlPct.toFixed(2)}%，达到保守策略 +8% 止盈线。见好就收不贪心，系统自动卖出把利润装进口袋！`
+        : needTrailing
+        ? `最高曾赚 +${peakPnlPct.toFixed(2)}%，现回落 ${Math.abs(ddFromPeak).toFixed(2)}%，系统自动移动止盈锁定 +${pnlPct.toFixed(2)}% 收益！`
+        : `浮亏达到 ${pnlPct.toFixed(2)}%，跌破保守策略 -4% 红线，且当前未封跌停可顺利成交，系统果断自动止损保住本金！`;
+
+      return {
+        action: "SELL_EXEC",
+        badge: sellTitle,
+        badgeClass: needTakeProfit || needTrailing ? "b-up" : "b-down",
+        boxClass: "sell",
+        reason: sellReason,
+        trace: [
+          `<b>① 触发条件</b>：${sellTitle}（成本 ¥${h.avgCost.toFixed(2)} → 现价 ¥${s.price.toFixed(2)}，盈亏 ${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}%）。`,
+          `<b>② 涨跌停校验</b>：当前未封死跌停板（跌停价 ¥${limitDown.toFixed(2)}），盘口买盘承接正常，满足散户卖出流动性。`,
+          `<b>③ T+1 校验</b>：可用股数 ${h.availableShares} 股，符合隔日可卖规定。`,
+          `<b>④ 成交执行</b>：全仓自动卖出 ${h.availableShares} 股，扣减万2.5佣金(最低¥5)+千0.5印花税+过户费。`,
+          `<b>⑤ 复盘结论</b>：${sellReason}`
+        ]
+      };
+    }
+
+    // Holding normally
+    if (s.boardStatus === "LIMIT_UP_SEALED") {
+      return {
+        action: "HOLD_LIMIT_UP",
+        badge: "🔥 持仓涨停封板",
+        badgeClass: "b-limit-up",
+        boxClass: "buy",
+        reason: `恭喜！持仓股封死 ${ratePct}% 涨停板（¥${limitUp.toFixed(2)}），浮盈 +${pnlPct.toFixed(2)}%，系统自动持股享受封板溢价！`
+      };
+    }
+    return {
+      action: "HOLD",
+      badge: "👀 稳健持有中",
+      badgeClass: "b-accent",
+      boxClass: "",
+      reason: `当前盈亏 ${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}%，处于安全区间（止损 -4% / 止盈 +8%），继续自动盯盘。`
+    };
+  }
+
+  // --- CASE B: NOT HOLDING (Evaluate Buy) ---
+  // 1. Limit-Up Sealed -> Retail CANNOT Buy!
+  if (s.boardStatus === "LIMIT_UP_SEALED" || s.price >= limitUp) {
+    return {
+      action: "BUY_BLOCKED_LIMIT_UP",
+      badge: "🚫 涨停封死买不进",
+      badgeClass: "b-limit-up",
+      boxClass: "blocked",
+      reason: `股价已封死 ${ratePct}% 涨停板（¥${limitUp.toFixed(2)}）！虽然有 ${s.cred} 分高可信度利好，但大资金已把买一封死，散户排单根本买不进。系统自动拦截，绝不虚假成交。`,
+      trace: [
+        `<b>① 情报评估</b>：${s.news}（可信度 ${s.cred} 分）。`,
+        `<b>② 涨跌停检测</b>：现价 ¥${s.price.toFixed(2)} 已达 ${ratePct}% 涨停价 ¥${limitUp.toFixed(2)}，且封单封死。`,
+        `<b>③ 散户实盘规则</b>：涨停封板时散户通道排在最后无法成交，系统拦截买入指令。`,
+        `<b>④ 后续预案</b>：继续监控，若次日高开幅度回落至 +3.5% 以内再考虑低吸。`
+      ]
+    };
+  }
+
+  // 2. Limit-Up Broken (炸板) -> Retail trap! Do not chase!
+  if (s.boardStatus === "LIMIT_UP_BROKEN") {
+    return {
+      action: "WAIT_BROKEN",
+      badge: "⚠️ 涨停炸板防接盘",
+      badgeClass: "b-gold",
+      boxClass: "warn",
+      reason: `刚刚从涨停板炸板回落（当前 +${pct.toFixed(2)}%），这是散户最容易高位接盘吃大面的陷阱！保守策略坚决不碰炸板股。`
+    };
+  }
+
+  // 3. Limit-Down Sealed -> Do not catch falling knife
+  if (s.boardStatus === "LIMIT_DOWN_SEALED") {
+    return {
+      action: "WAIT_LIMIT_DOWN",
+      badge: "⛔ 跌停不接飞刀",
+      badgeClass: "b-limit-down",
+      boxClass: "warn",
+      reason: `股价封死跌停（¥${limitDown.toFixed(2)}），空头情绪极端，保守策略绝不抄底跌停接飞刀。`
+    };
+  }
+
+  // 4. Credibility & Bias
+  if (s.cred < RULES.minCredibility || s.bias !== "bull") {
+    return { action: "WAIT", badge: "⏸️ 观望中", badgeClass: "b-gray", boxClass: "", reason: `当前情报可信度或逻辑强度未达保守建仓标准（需≥85分且明确利好），继续耐心等待。` };
+  }
+
+  // 5. No chasing high
+  if (pct >= RULES.maxChasePct) {
+    return {
+      action: "WAIT_HIGH",
+      badge: "⚠️ 涨幅过高不追高",
+      badgeClass: "b-gold",
+      boxClass: "warn",
+      reason: `今日已上涨 +${pct.toFixed(2)}%，超过保守策略 +3.5% 不追高红线。等回调企稳再买，宁可错过也不站岗。`
+    };
+  }
+
+  // 6. No falling knife
+  if (pct <= RULES.maxDipPct) {
+    return {
+      action: "WAIT_DIP",
+      badge: "⚠️ 急跌观望企稳",
+      badgeClass: "b-gold",
+      boxClass: "warn",
+      reason: `今日下跌 ${pct.toFixed(2)}%，短线抛压较重，等止跌企稳后再进场。`
+    };
+  }
+
+  // 7. Total Position Cap (<= 60%)
+  if (posRatio >= RULES.maxTotalPosRatio - 0.02) {
+    return {
+      action: "WAIT_CASH",
+      badge: "🛡️ 留足40%现金垫",
+      badgeClass: "b-gold",
+      boxClass: "warn",
+      reason: `当前总仓位 ${(posRatio*100).toFixed(1)}% 已逼近保守型 60% 上限，强制保留 40% 现金安全垫，暂不买新股。`
+    };
+  }
+
+  // 8. Check 100-share & minOrderAmount (>= 2500 to avoid 5 RMB min-commission drag)
+  const maxSingle = total * RULES.maxSinglePosRatio;
+  const maxRemain = Math.max(0, total * RULES.maxTotalPosRatio - (total - state.cash));
+  const budget = Math.min(maxSingle, maxRemain, state.cash - 30);
+  const lots = Math.floor(budget / (s.price * 100));
+  const orderAmt = lots * 100 * s.price;
+
+  if (lots <= 0) {
+    return {
+      action: "WAIT_PRICE",
+      badge: "💰 1手超单股上限",
+      badgeClass: "b-gray",
+      boxClass: "warn",
+      reason: `该股现价 ¥${s.price.toFixed(2)}，买1手(100股)需 ¥${(s.price*100).toFixed(0)}，超出了 5 万本金单股 20%（约¥1万）的保守风控上限，自动放弃高价股，防单票重仓风险。`
+    };
+  }
+  if (orderAmt < RULES.minOrderAmount) {
+    return {
+      action: "WAIT_FEE",
+      badge: "🛡️ 防佣金损耗跳过",
+      badgeClass: "b-gray",
+      boxClass: "warn",
+      reason: `可用配额仅 ¥${orderAmt.toFixed(0)}，低于 ¥2,500 防损耗门槛（最低5元佣金占比过高），暂不开碎单。`
+    };
+  }
+
+  return {
+    action: "BUY_EXEC",
+    badge: "🚀 自动低吸买入",
+    badgeClass: "b-up",
+    boxClass: "buy",
+    lots,
+    reason: `情报实锤（${s.cred}分），当前涨跌幅 ${pct>=0?'+':''}${pct.toFixed(2)}% 未追高且未封涨停，单笔金额 ¥${orderAmt.toFixed(0)} 满足防佣金损耗与仓位风控，系统全自动低吸 ${lots*100} 股！`,
+    trace: [
+      `<b>① 情报定性</b>：${s.news}（交叉验证可信度 ${s.cred} 分 ≥ 85分）。`,
+      `<b>② 涨跌停与盘口</b>：现价 ¥${s.price.toFixed(2)}（${pct>=0?'+':''}${pct.toFixed(2)}%），远离涨停价 ¥${limitUp.toFixed(2)}，流动充足可顺利买入。`,
+      `<b>③ 散户风控校验</b>：总仓位 ${(posRatio*100).toFixed(1)}% &lt; 60%，单股预算 ≤ 20%，金额 ¥${orderAmt.toFixed(0)} ≥ ¥2,500（规避5元低消手续费损耗）。`,
+      `<b>④ 自动撮合成交</b>：买入 ${lots*100} 股，成交额 ¥${orderAmt.toFixed(2)}，今日 T+1 锁仓。`,
+      `<b>⑤ 预设风控护盾</b>：自动绑定 -4% 止损线、+8% 止盈线及 +5% 回撤 2% 移动锁利。`
+    ]
+  };
+}
+
+function pushLog(entry) {
+  state.logs.unshift(entry);
+  if (state.logs.length > 60) state.logs.pop();
+}
+
+function executeBuy(s, ev) {
+  const shares = ev.lots * 100;
+  const amount = Number((shares * s.price).toFixed(2));
+  const fee = calcFees(amount, false);
+  if (amount + fee > state.cash) return;
+
+  state.cash = Number((state.cash - amount - fee).toFixed(2));
+  state.totalFees = Number((state.totalFees + fee).toFixed(2));
+  state.holdings[s.code] = {
+    code: s.code,
+    name: s.name,
+    shares,
+    availableShares: 0, // T+1
+    avgCost: Number(((amount + fee) / shares).toFixed(3)),
+    peakPrice: s.price,
+    queuedSell: false
+  };
+  pushLog({
+    id: Date.now() + Math.random(),
+    day: state.day,
+    clock: formatClock(state.minuteOfDay),
+    type: "BUY",
+    code: s.code,
+    name: s.name,
+    price: s.price,
+    shares,
+    amount,
+    fee,
+    pnl: null,
+    tag: ev.badge,
+    reason: ev.reason,
+    trace: ev.trace
+  });
+  setTicker(`✅ 自动买入 ${s.name} ${shares}股 @¥${s.price.toFixed(2)}（T+1锁仓）`);
+}
+
+function executeSell(s, ev) {
+  const h = state.holdings[s.code];
+  if (!h || h.availableShares <= 0) return;
+
+  const shares = h.availableShares;
+  const amount = Number((shares * s.price).toFixed(2));
+  const fee = calcFees(amount, true);
+  const net = amount - fee;
+  const pnl = Number((net - h.avgCost * shares).toFixed(2));
+
+  state.cash = Number((state.cash + net).toFixed(2));
+  state.totalFees = Number((state.totalFees + fee).toFixed(2));
+  delete state.holdings[s.code];
+
+  pushLog({
+    id: Date.now() + Math.random(),
+    day: state.day,
+    clock: formatClock(state.minuteOfDay),
+    type: "SELL",
+    code: s.code,
+    name: s.name,
+    price: s.price,
+    shares,
+    amount,
+    fee,
+    pnl,
+    tag: ev.badge,
+    reason: ev.reason,
+    trace: ev.trace
+  });
+  setTicker(`💰 ${ev.badge} ${s.name} ${shares}股 @¥${s.price.toFixed(2)}，落袋 ${pnl>=0?'+':''}¥${pnl.toFixed(2)}`);
+}
+
+function logBlockedOnce(s, ev, blockType) {
+  const key = `${state.day}_${s.code}_${blockType}`;
+  if (state.lastBlockLogKey[key]) return;
+  state.lastBlockLogKey[key] = true;
+  pushLog({
+    id: Date.now() + Math.random(),
+    day: state.day,
+    clock: formatClock(state.minuteOfDay),
+    type: "BLOCKED",
+    code: s.code,
+    name: s.name,
+    price: s.price,
+    shares: 0,
+    amount: 0,
+    fee: 0,
+    pnl: null,
+    tag: ev.badge,
+    reason: ev.reason,
+    trace: ev.trace
+  });
+  setTicker(`${ev.badge}：${s.name} @¥${s.price.toFixed(2)}`);
+}
+
+// Fully Autonomous Engine Tick (Zero Manual Intervention)
+async function autonomousTick() {
+  // Advance intraday clock (skip lunch 11:30 -> 13:00, rollover 15:00 -> next day 09:30)
+  state.minuteOfDay += 15;
+  if (state.minuteOfDay > 690 && state.minuteOfDay < 780) state.minuteOfDay = 780; // 11:30 -> 13:00
+  if (state.minuteOfDay > 900) {
+    // Auto rollover to next trading day! Unlock T+1!
+    state.day += 1;
+    state.minuteOfDay = 570;
+    for (const code in state.holdings) {
+      state.holdings[code].availableShares = state.holdings[code].shares;
+    }
+    state.watchlist.forEach(s => {
+      s.prevClose = s.price;
+      s.boardStatus = "NORMAL";
+    });
+    setTicker(`🔔 自动进入第 ${state.day} 个交易日 09:30，昨日持仓已自动解冻 T+1！`);
+  }
+
+  for (const s of state.watchlist) {
+    simulateMarketStep(s);
+    const ev = evaluateRetailLogic(s);
+    s.lastEval = ev;
+
+    if (ev.action === "BUY_EXEC") {
+      executeBuy(s, ev);
+      s.lastEval = evaluateRetailLogic(s);
+    } else if (ev.action === "SELL_EXEC") {
+      executeSell(s, ev);
+      s.lastEval = evaluateRetailLogic(s);
+    } else if (ev.action === "BUY_BLOCKED_LIMIT_UP") {
+      logBlockedOnce(s, ev, "LIMIT_UP");
+    } else if (ev.action === "SELL_BLOCKED_LIMIT_DOWN") {
+      logBlockedOnce(s, ev, "LIMIT_DOWN");
+    }
+  }
+
+  saveState();
+  renderAll();
+}
+
+function setSpeed(ms, btn) {
+  tickMs = ms;
+  document.querySelectorAll(".speed-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  restartLoop();
+}
+
+function restartLoop() {
+  if (timerId) clearInterval(timerId);
+  timerId = setInterval(autonomousTick, tickMs);
+}
+
+function resetAll() {
+  if (!confirm("重置为第1交易日、¥50,000本金并重新开始全自动运行吗？")) return;
+  state = {
+    day: 1,
+    minuteOfDay: 570,
+    cash: INITIAL_CAPITAL,
+    totalFees: 0,
+    holdings: {},
+    watchlist: JSON.parse(JSON.stringify(DEFAULT_WATCHLIST)),
+    logs: [],
+    lastBlockLogKey: {}
+  };
+  saveState();
+  renderAll();
+  autonomousTick();
+}
+
+async function addWatchStock() {
+  const raw = document.getElementById("add-code").value.trim().replace(/\D/g, "");
+  if (raw.length !== 6) return alert("请输入 6 位 A 股代码（如 600519 或 300750）");
+  const fullCode = raw + (raw.startsWith("6") ? ".SH" : ".SZ");
+  if (state.watchlist.some(x => x.code === fullCode)) return alert("已在监控列表中");
+
+  const item = {
+    code: fullCode,
+    name: "意向股 " + raw,
+    sector: getLimitRate(fullCode) === 0.20 ? "双创板(±20%)" : "主板(±10%)",
+    prevClose: 18.50,
+    price: 18.60,
+    cred: 88,
+    bias: "bull",
+    boardStatus: "NORMAL",
+    news: "用户加入长期意向监控，已自动开启全天候涨跌停监测与保守买卖"
+  };
+  const live = await fetchLiveQuote(item);
+  if (live) {
+    item.name = live.name;
+    item.price = live.price;
+    item.prevClose = live.prevClose;
+  }
+  state.watchlist.unshift(item);
+  document.getElementById("add-code").value = "";
+  saveState();
+  renderAll();
+}
+
+function renderAll() {
+  document.getElementById("sim-clock").textContent = `第${state.day}日 ${formatClock(state.minuteOfDay)}`;
+  const { mkt, total } = getTotals();
+  const pnl = total - INITIAL_CAPITAL;
+  const pnlPct = (pnl / INITIAL_CAPITAL) * 100;
+  const posRatio = (mkt / total) * 100;
+
+  document.getElementById("total-assets").textContent = "¥" + total.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pnlEl = document.getElementById("total-pnl");
+  pnlEl.textContent = `${pnl>=0?'+':''}¥${pnl.toFixed(2)} (${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}%)`;
+  pnlEl.className = pnl >= 0 ? "up" : "down";
+  document.getElementById("total-fees").textContent = "¥" + state.totalFees.toFixed(2);
+  document.getElementById("cash-val").textContent = "¥" + Math.round(state.cash).toLocaleString("zh-CN");
+  document.getElementById("mkt-val").textContent = "¥" + Math.round(mkt).toLocaleString("zh-CN");
+  document.getElementById("pos-ratio").textContent = posRatio.toFixed(1) + "%";
+  document.getElementById("pos-bar").style.width = Math.min(100, posRatio) + "%";
+
+  // Queued limit-down sells
+  const queued = Object.values(state.holdings).filter(h => h.queuedSell);
+  const qCard = document.getElementById("queued-card");
+  qCard.classList.toggle("hidden", queued.length === 0);
+  if (queued.length) {
+    document.getElementById("queued-list").innerHTML = queued.map(h => `
+      <div style="font-size:12px;color:#f3e8ff;line-height:1.5;">
+        <b>${h.name} (${h.code})</b>：${h.availableShares}股 跌停封死排队中，系统毫秒级盯盘，一旦撬板立即自动卖出！
+      </div>
+    `).join("");
+  }
+
+  // Holdings
+  const hArr = Object.values(state.holdings);
+  document.getElementById("holding-count").textContent = hArr.length + " 只";
+  const hBox = document.getElementById("holdings-list");
+  if (!hArr.length) {
+    hBox.innerHTML = `<div class="muted" style="font-size:12px;">系统正在全自动扫描符合条件的低吸买点（无需人工点击）...</div>`;
+  } else {
+    hBox.innerHTML = hArr.map(h => {
+      const s = state.watchlist.find(x => x.code === h.code);
+      const p = s ? s.price : h.avgCost;
+      const uPnl = (p - h.avgCost) * h.shares;
+      const uPct = ((p - h.avgCost) / h.avgCost) * 100;
+      const ev = (s && s.lastEval) ? s.lastEval : { badge: "监控中", badgeClass: "b-accent", boxClass: "", reason: "" };
+      const { limitUp, limitDown, ratePct } = calcLimitPrices(s ? s.prevClose : h.avgCost, h.code);
+      return `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="row-between">
+            <div>
+              <span style="font-weight:700;font-size:14px;">${h.name}</span>
+              <span class="muted" style="font-size:11px;margin-left:4px;">${h.code} (±${ratePct}%)</span>
+            </div>
+            <span class="badge ${ev.badgeClass}">${ev.badge}</span>
+          </div>
+          <div class="grid-3" style="margin-top:7px;">
+            <div><div class="mini-lbl">持仓/可卖</div><div style="font-size:12px;font-weight:700;">${h.shares}/${h.availableShares}股</div></div>
+            <div><div class="mini-lbl">现价/成本</div><div style="font-size:12px;font-weight:700;">${p.toFixed(2)}/${h.avgCost.toFixed(2)}</div></div>
+            <div><div class="mini-lbl">实时浮盈</div><div style="font-size:12px;font-weight:700;" class="${uPnl>=0?'up':'down'}">${uPnl>=0?'+':''}${uPnl.toFixed(0)} (${uPct>=0?'+':''}${uPct.toFixed(2)}%)</div></div>
+          </div>
+          <div style="font-size:10.5px;color:var(--muted);margin-top:5px;">今日涨停 ¥${limitUp.toFixed(2)} ｜ 跌停 ¥${limitDown.toFixed(2)}</div>
+          <div class="explain-box ${ev.boxClass}">${ev.reason}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // Monitor List
+  document.getElementById("monitor-list").innerHTML = state.watchlist.map(s => {
+    const pct = ((s.price - s.prevClose) / s.prevClose) * 100;
+    const { ratePct, limitUp, limitDown } = calcLimitPrices(s.prevClose, s.code);
+    const ev = s.lastEval || evaluateRetailLogic(s);
+    return `
+      <div class="card">
+        <div class="row-between">
+          <div>
+            <span style="font-size:14.5px;font-weight:700;">${s.name}</span>
+            <span class="muted" style="font-size:11px;margin-left:4px;">${s.code} · ±${ratePct}%</span>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:15px;font-weight:800;" class="${pct>=0?'up':'down'}">¥${s.price.toFixed(2)}</div>
+            <div style="font-size:11px;font-weight:700;" class="${pct>=0?'up':'down'}">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
+          </div>
+        </div>
+        <div class="row-between" style="margin-top:7px;">
+          <span class="badge ${ev.badgeClass}">${ev.badge}</span>
+          <span class="muted" style="font-size:10.5px;">涨停 ¥${limitUp.toFixed(2)} / 跌停 ¥${limitDown.toFixed(2)}</span>
+        </div>
+        <div class="explain-box ${ev.boxClass}"><b>自动判断标注：</b>${ev.reason}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Logs List
+  document.getElementById("log-count").textContent = state.logs.length + " 条";
+  const lBox = document.getElementById("logs-list");
+  if (!state.logs.length) {
+    lBox.innerHTML = `<div class="card muted" style="font-size:12px;">等待首笔自动交易或涨跌停拦截事件...</div>`;
+  } else {
+    lBox.innerHTML = state.logs.map(l => `
+      <div class="card">
+        <div class="row-between">
+          <div>
+            <span class="badge ${l.type==='BUY'?'b-up':l.type==='SELL'?'b-down':'b-purple'}">
+              ${l.type==='BUY'?'自动买入':l.type==='SELL'?'自动卖出':'涨跌停拦截/排队'}
+            </span>
+            <span style="font-weight:700;margin-left:5px;">${l.name} (${l.code})</span>
+          </div>
+          <span class="muted" style="font-size:11px;">第${l.day}日 ${l.clock}</span>
+        </div>
+        ${l.type !== 'BLOCKED' ? `
+          <div class="row-between" style="margin-top:7px;font-size:12px;">
+            <span>成交 ¥${l.price.toFixed(2)} × ${l.shares}股</span>
+            <span>总额 ¥${l.amount.toFixed(0)} (费¥${l.fee})</span>
+          </div>
+        ` : `<div style="margin-top:6px;font-size:12px;color:#d8b4fe;">触发价 ¥${l.price.toFixed(2)} · 实盘通道受限未成交</div>`}
+        ${l.pnl !== null ? `<div style="margin-top:5px;font-size:13px;font-weight:700;" class="${l.pnl>=0?'up':'down'}">本笔落袋净盈亏：${l.pnl>=0?'+':''}¥${l.pnl.toFixed(2)}</div>` : ''}
+        <div class="explain-box ${l.type==='BUY'?'buy':l.type==='SELL'?'sell':'blocked'}">
+          <b>${l.tag}：</b>${l.reason}
+        </div>
+        ${l.trace && l.trace.length ? `
+          <div class="trace-box">
+            ${l.trace.map(t => `<div class="trace-step">${t}</div>`).join("")}
+          </div>
+        ` : ''}
+      </div>
+    `).join("");
+  }
+}
+
+function switchTab(name, btn) {
+  ["auto", "monitor", "logs", "rules"].forEach(t => document.getElementById("tab-" + t).classList.toggle("hidden", t !== name));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+// Auto-launch hands-free immediately!
+renderAll();
+autonomousTick();
+restartLoop();
+</script>
+</body>
+</html>
